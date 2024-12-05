@@ -775,6 +775,7 @@ export default function Home() {
                       setData({ ...dataClone });
                       setCurrent([current[0], { skill: '' }, current[2]]);
                       setOpen('skill');
+                      saveResumeToDB(dataClone);
                     }}
                   >Add</button>
                 </div>

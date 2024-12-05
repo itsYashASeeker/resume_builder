@@ -13,7 +13,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function DatePicker({ date, setDate }: any) {
+export function DatePicker({ date, setDate, disabled }: any) {
 
     return (
         <Popover>
@@ -24,6 +24,7 @@ export function DatePicker({ date, setDate }: any) {
                         "w-[240px] justify-start text-left font-normal",
                         !date && "text-muted-foreground"
                     )}
+                    disabled={disabled}
                 >
                     <CalendarIcon />
                     {date ? format(date, "PPP") : <span>Pick a date</span>}

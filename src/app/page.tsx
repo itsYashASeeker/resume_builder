@@ -264,8 +264,30 @@ export default function Home() {
               </section>
               : <></>
             }
-
-            <section className="w-full flex-col justify-start items-start">
+            {data?.certificate && data.certificate.length > 0 ?
+              <section className="w-full flex-col justify-start items-start">
+                <p className="font-bold text-md uppercase">Certificate</p>
+                <div className="w-12 h-1 bg-slate-900 rounded"></div>
+                <div className="flex flex-col gap-2">
+                  {
+                    data?.certificate.map((exp: any, i: any) => {
+                      return (
+                        <section className="w-full flex-col justify-start items-start text-sm" key={i}>
+                          <div className="flex justify-between items-start py-1">
+                            <div className="flex flex-col">
+                              <p className="font-semibold ">{exp?.name}</p>
+                              <p className=" text-slate-900 underline">{exp?.by}</p>
+                            </div>
+                          </div>
+                        </section>
+                      )
+                    })
+                  }
+                </div>
+              </section>
+              : <></>
+            }
+            {/* <section className="w-full flex-col justify-start items-start">
               <p className="font-bold text-lg uppercase">Language</p>
               <div className="w-12 h-1 bg-slate-900 rounded"></div>
               <ul className="flex flex-wrap gap-2 py-3 list-disc px-6 gap-6">
@@ -289,7 +311,7 @@ export default function Home() {
                 </li>
               </ul>
 
-            </section>
+            </section> */}
           </div>
         </div>
       </div >

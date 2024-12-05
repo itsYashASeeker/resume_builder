@@ -18,6 +18,8 @@ import Resume1 from "@/components/resume/Resume1";
 import axios from "axios"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
+import Resume2 from "@/components/resume/Resume2";
+import SettingImage from "@/assets/setting.png";
 
 
 
@@ -66,40 +68,55 @@ export default function Home() {
   const [edit, setEdit] = useState<any>(['', {}, 0])
   const { toast } = useToast()
   const [loading, setLoading] = useState(false);
+  const [templateId, setTemplateId] = useState(0);
+
+  const [openSetting, setOpenSetting] = useState(false);
 
 
   async function fetchResume() {
-    const resume_id = localStorage.getItem('resume_id');
-    if (resume_id) {
-      setLoading(true);
-      try {
-        await axios.get(`/api/resume?id=${resume_id}`)
-          .then((res) => {
-            if (res.data.status == 200) {
-              setData(res.data.resume.data);
+    const t_id = localStorage.getItem('resume_template');
+    setTemplateId(Number(t_id));
+    // if (t_id) {
+    setLoading(true);
+    try {
+      await axios.get(`/api/resume`)
+        .then((res) => {
+          if (res.data.status == 200) {
+            if (res?.data?.resume && res?.data?.resume?.data) {
+              setData(res?.data?.resume?.data);
             }
-            else {
-              toast({
-                title: "Error",
-                description: "Error in fetching Resume. Please try again!",
-                variant: "destructive"
-              })
-            }
-          })
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Error in fetching Resume. Please try again!",
-          variant: "destructive"
+          }
+          else {
+            toast({
+              title: "Error",
+              description: "Error in fetching Resume. Please try again!",
+              variant: "destructive"
+            })
+          }
         })
-      } finally {
-        setLoading(false);
-      }
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Error",
+        description: "Error in fetching Resume. Please try again!",
+        variant: "destructive"
+      })
+      localStorage.removeItem('resume_template');
+    } finally {
+      setLoading(false);
     }
+    // }
   }
 
   useEffect(() => {
     fetchResume();
+  }, [])
+
+  useEffect(() => {
+    const resumeTemplate = localStorage.getItem('resume_template');
+    if (!resumeTemplate) {
+      setOpenSetting(true)
+    }
   }, [])
 
 
@@ -152,50 +169,24 @@ export default function Home() {
   async function saveResumeToDB(dataClone: any) {
     try {
       setLoading(true);
-      var resumeId = localStorage.getItem("resume_id");
-      if (resumeId) {
-        await axios.put('/api/resume', {
-          resumeId: resumeId,
-          data: dataClone
+      await axios.put('/api/resume', {
+        data: dataClone
+      })
+        .then((data) => {
+          if (data.status == 200) {
+            toast({
+              title: "Success",
+              description: "Data has been saved successfully!",
+            })
+          }
+          else {
+            toast({
+              title: "Error",
+              description: "Error in saving data. Please try again!",
+              variant: "destructive"
+            })
+          }
         })
-          .then((data) => {
-            if (data.status == 200) {
-              toast({
-                title: "Success",
-                description: "Data has been saved successfully!",
-              })
-            }
-            else {
-              toast({
-                title: "Error",
-                description: "Error in saving data. Please try again!",
-                variant: "destructive"
-              })
-            }
-          })
-      }
-      else {
-        await axios.post('/api/resume', {
-          templateId: localStorage.getItem('resume_template'),
-          data: dataClone
-        })
-          .then((data) => {
-            if (data.status == 201) {
-              toast({
-                title: "Success",
-                description: "Data has been saved successfully!",
-              })
-              localStorage.setItem("resume_id", data.data.id);
-            }
-            else {
-              toast({
-                title: "Error",
-                description: "Error in saving data. Please try again!",
-                variant: "destructive"
-              })
-            }
-          })
-      }
 
     } catch (error) {
       toast({
@@ -253,9 +244,24 @@ export default function Home() {
 
   return (
     <div className="w-full h-screen bg-slate-200 flex justify-center items-center px-8 py-12 gap-12 font-sans">
-      <ChooseTemplate />
+      <button className="fixed right-6 top-2 hover:opacity-80"
+        onClick={() => { setOpenSetting(true) }}
+      >
+        <Image src={SettingImage} alt="Settings" className="w-6 h-auto" />
+      </button>
+      <ChooseTemplate
+        open={openSetting}
+        setOpen={setOpenSetting}
+        selectedTemplate={templateId}
+        setSelectedTemplate={setTemplateId}
+      />
       {/* Resume Start */}
-      <Resume1 dummy={false} data={data} />
+      {templateId == 1 ?
+        <Resume1 dummy={false} data={data} /> : <></>
+      }
+      {templateId == 2 ?
+        <Resume2 dummy={false} data={data} /> : <></>
+      }
       {/* Resume End */}
       {/* Cards */}
       {

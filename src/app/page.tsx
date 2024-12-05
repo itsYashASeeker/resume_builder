@@ -13,6 +13,9 @@ import { DatePicker } from "@/components/DatePicker";
 import EditorComponent from "@/components/Editor";
 import CrossSVG from "@/assets/cross.svg";
 import { Checkbox } from "@/components/ui/checkbox"
+import ChooseTemplate from "@/components/ChooseTemplate";
+import Resume1 from "@/components/resume/Resume1";
+import axios from "axios"
 
 
 
@@ -60,6 +63,24 @@ export default function Home() {
   const [current, setCurrent] = useState<any>(['', {}, { isEdit: -1 }])
   const [edit, setEdit] = useState<any>(['', {}, 0])
 
+
+  async function fetchResume() {
+    const resume_id = localStorage.getItem('resume_id');
+    if (resume_id) {
+      await axios.get(`/api/resume?id=${resume_id}`)
+        .then((res) => {
+          if (res.data.status == 200) {
+            setData(res.data.resume.data);
+          }
+        })
+    }
+  }
+
+  useEffect(() => {
+    fetchResume();
+  }, [])
+
+
   function createSection(section: any) {
     section = section.toLowerCase();
     if (section == "education") {
@@ -90,14 +111,15 @@ export default function Home() {
 
   function saveCurrent() {
     if (current[0] == '') return;
+    var dataClone = { ...data };
     if (current[2].isEdit >= 0) {
-      var dataClone = { ...data };
       dataClone[current[0]][current[2].isEdit] = current[1];
       setData({ ...dataClone })
     }
     else {
       if (current[0] == "profile") {
-        setData({ ...data, [current[0]]: current[1] })
+        dataClone[current[0]] = current[1];
+        setData({ ...dataClone })
       }
       // else {
       //   setData({ ...data, [current[0]]: [...data[current[0]], current[1]] })
@@ -105,15 +127,44 @@ export default function Home() {
     }
     setOpen(current[0]);
     setCurrent(['', {}, { isEdit: -1 }]);
+    saveResumeToDB(dataClone);
   }
 
-  useEffect(() => {
-    console.log(data);
-  }, [data])
+  async function saveResumeToDB(dataClone: any) {
+    try {
+      var resumeId = localStorage.getItem("resume_id");
+      if (resumeId) {
+        await axios.put('/api/resume', {
+          resumeId: resumeId,
+          data: dataClone
+        })
+          .then((data) => {
+            if (data.status == 200) {
+              console.log(data);
+              window.alert('success');
+            }
 
-  // useEffect(() => {
-  //   console.log(current);
-  // }, [current])
+          })
+      }
+      else {
+        await axios.post('/api/resume', {
+          templateId: localStorage.getItem('resume_template'),
+          data: dataClone
+        })
+          .then((data) => {
+            if (data.status == 201) {
+              console.log(data);
+              window.alert('success');
+              localStorage.setItem("resume_id", data.data.id);
+            }
+          })
+      }
+
+    } catch (error) {
+      console.log('some error occurred');
+
+    }
+  }
 
   function onChange(e: any) {
     if (!e.target.name) {
@@ -147,15 +198,6 @@ export default function Home() {
     }
   }
 
-  function formatDateToMonthYear(dateString: any) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const month = date.toLocaleString('en-US', { month: 'long' }).slice(0, 3);
-    const year = date.getFullYear();
-    const formattedDate = `${month},${year}`;
-    console.log(formattedDate);
-    return formattedDate;
-  }
 
   function openAccordion(section: string) {
     if (open == section) {
@@ -168,153 +210,9 @@ export default function Home() {
 
   return (
     <div className="w-full h-screen bg-slate-200 flex justify-center items-center px-8 py-12 gap-12 font-sans">
+      <ChooseTemplate />
       {/* Resume Start */}
-      <div className="w-1/2 h-full bg-white rounded-md font-serif overflow-auto">
-        <div className="w-full flex flex-col justify-start items-start ">
-          <div className="flex flex-col justify-center items-center py-6 w-full bg-slate-800">
-            <p className="font-bold text-2xl text-white">{data?.profile?.name ? data?.profile?.name : ''}</p>
-            {/* <p className="text-slate-200">Full Stack Developer</p> */}
-            <div className="flex flex-wrap justify-center gap-3 text-slate-300 mt-2">
-              {data?.profile?.email ? <div className="flex gap-1 justify-center items-center">
-                <Image src={EmailSVG} alt="Email" className="w-4 h-4" />
-                <p>{data?.profile?.email ? data?.profile?.email : ''}</p>
-              </div> : <></>}
-              {data?.profile?.phone ? <div className="flex gap-1 justify-center items-center">
-                <Image src={PhoneSVG} alt="Email" className="w-4 h-4" />
-                <p>{data?.profile?.phone ? data?.profile?.phone : ''}</p>
-              </div> : <></>}
-              {data?.profile?.location ? <div className="flex gap-1 justify-center items-center">
-                <Image src={LocationSVG} alt="Email" className="w-4 h-4" />
-                <p>{data?.profile?.location ? data?.profile?.location : ''}</p>
-              </div> : <></>}
-            </div>
-          </div>
-          <div className="flex flex-col justify-start gap-3 items-start w-full px-8 py-6 text-slate-900">
-            {data?.experience && data.experience.length > 0 ?
-              <section className="w-full flex-col justify-start items-start">
-                <p className="font-bold text-md uppercase">Experience</p>
-                <div className="w-12 h-1 bg-slate-900 rounded"></div>
-                <div className="flex flex-col gap-2">
-                  {
-                    data?.experience.map((exp: any, i: any) => {
-                      return (
-                        <section className="w-full flex-col justify-start items-start text-sm" key={i}>
-                          <div className="flex justify-between items-start py-1">
-                            <div className="flex flex-col">
-                              <p className="font-semibold ">{exp?.company}</p>
-                              <p className=" text-slate-900 underline">{exp?.profile}</p>
-                            </div>
-                            <p className="w-content">{formatDateToMonthYear(exp?.start) + " - " + (exp?.present ? 'Present' : formatDateToMonthYear(exp?.end))}</p>
-                          </div>
-                          <p className="text-slate-700 pl-2" style={{ fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: exp?.description }}>
-                            {/* Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. */}
-                          </p>
-                        </section>
-                      )
-                    })
-                  }
-                </div>
-              </section>
-              : <></>
-            }
-            {data?.education && data.education.length > 0 ?
-              <section className="w-full flex-col justify-start items-start">
-                <p className="font-bold text-md uppercase">Education</p>
-                <div className="w-12 h-1 bg-slate-900 rounded"></div>
-                <div className="flex flex-col gap-2">
-                  {
-                    data?.education.map((exp: any, i: any) => {
-                      return (
-                        <section className="w-full flex-col justify-start items-start text-sm" key={i}>
-                          <div className="flex justify-between items-start py-1">
-                            <div className="flex flex-col">
-                              <p className="font-semibold ">{exp?.school}</p>
-                              <p className=" text-slate-900 underline">{exp?.degree}</p>
-                            </div>
-                            <p className="w-content">{formatDateToMonthYear(exp?.start) + " - " + exp?.present ? 'Present' : formatDateToMonthYear(exp?.end)}</p>
-                          </div>
-                          <p className="text-slate-700 pl-2" style={{ fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: exp?.description }}>
-                            {/* Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. */}
-                          </p>
-                        </section>
-                      )
-                    })
-                  }
-                </div>
-              </section>
-              : <></>
-            }
-            {data?.skill && data?.skill.length > 0 ?
-              <section className="w-full flex-col justify-start items-start">
-                <p className="font-bold text-lg uppercase">Skills</p>
-                <div className="w-12 h-1 bg-slate-900 rounded"></div>
-                <div className="flex flex-wrap gap-2 py-3 ">
-                  {data?.skill.map((skill: any, i: any) => {
-                    return (
-                      <div className="border border-1 border-slate-300 px-3  rounded-lg w-fit"
-                        style={{ fontSize: '0.9rem' }}
-                        key={i}
-                      >
-                        {skill}
-                      </div>
-                    )
-                  })}
-                </div>
-
-              </section>
-              : <></>
-            }
-            {data?.certificate && data.certificate.length > 0 ?
-              <section className="w-full flex-col justify-start items-start">
-                <p className="font-bold text-md uppercase">Certificate</p>
-                <div className="w-12 h-1 bg-slate-900 rounded"></div>
-                <div className="flex flex-col gap-2">
-                  {
-                    data?.certificate.map((exp: any, i: any) => {
-                      return (
-                        <section className="w-full flex-col justify-start items-start text-sm" key={i}>
-                          <div className="flex justify-between items-start py-1">
-                            <div className="flex flex-col">
-                              <p className="font-semibold ">{exp?.name}</p>
-                              <p className=" text-slate-900 underline">{exp?.by}</p>
-                            </div>
-                          </div>
-                        </section>
-                      )
-                    })
-                  }
-                </div>
-              </section>
-              : <></>
-            }
-            {/* <section className="w-full flex-col justify-start items-start">
-              <p className="font-bold text-lg uppercase">Language</p>
-              <div className="w-12 h-1 bg-slate-900 rounded"></div>
-              <ul className="flex flex-wrap gap-2 py-3 list-disc px-6 gap-6">
-                <li style={{ fontSize: '0.9rem' }}>
-                  Hello
-                </li>
-                <li style={{ fontSize: '0.9rem' }}>
-                  Hello
-                </li>
-                <li style={{ fontSize: '0.9rem' }}>
-                  Hello
-                </li>
-                <li style={{ fontSize: '0.9rem' }}>
-                  Hello
-                </li>
-                <li style={{ fontSize: '0.9rem' }}>
-                  Hello
-                </li>
-                <li style={{ fontSize: '0.9rem' }}>
-                  Hello
-                </li>
-              </ul>
-
-            </section> */}
-          </div>
-        </div>
-      </div >
+      <Resume1 dummy={false} data={data} />
       {/* Resume End */}
       {/* Cards */}
       {

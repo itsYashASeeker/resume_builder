@@ -3,7 +3,14 @@
 First, install all necessary dependencies:
 
 ```bash
-npm install (run with flag --legacy-peer-deps if it gives dependency issues)
+npm install
+```
+OR
+
+Run below command if dependency issues faced:
+
+```bash
+npm install --legacy-peer-deps
 ```
 
 Configure Database URL in .env file in root of your project:
